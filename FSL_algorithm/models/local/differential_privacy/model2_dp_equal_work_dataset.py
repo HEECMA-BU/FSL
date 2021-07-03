@@ -59,7 +59,7 @@ def train(x, target, model):
 def run_model(device, dataloaders, data, constant):
     if(torch.cuda.is_available()== True):
         torch.cuda.reset_max_memory_allocated()
-    wd = './m2_dp_'+str(constant.PARAM)+'_reconstruction_equal_work_dataset_'+str(constant.CLIENTS)+"_base_"+str(constant.MAXCLIENTS)
+    wd = os.path.join(constant.PD, 'm2_dp_'+str(constant.PARAM)+'_reconstruction_equal_work_dataset_'+str(constant.CLIENTS)+"_base_"+str(constant.MAXCLIENTS))
     Path(wd).mkdir(parents=True, exist_ok=True)
 
     logs_dirpath = wd+'/logs/train/'

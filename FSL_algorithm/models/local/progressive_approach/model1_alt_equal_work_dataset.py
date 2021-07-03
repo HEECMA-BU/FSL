@@ -71,7 +71,7 @@ def trainA(x, splitNN):
 def run_model(device, dataloaders, data, constant):
     if(torch.cuda.is_available()== True):
         torch.cuda.reset_max_memory_allocated()
-    wd = "./m1_alt_"+str(constant.PARAM)+"_reconstruction"+"_equal_work_dataset_"+str(constant.CLIENTS)+"_base_"+str(constant.MAXCLIENTS)
+    wd = os.path.join(constant.PD, "m1_alt_"+str(constant.PARAM)+"_reconstruction"+"_equal_work_dataset_"+str(constant.CLIENTS)+"_base_"+str(constant.MAXCLIENTS))
     Path(wd).mkdir(parents=True, exist_ok=True)
 
     logs_dirpath = wd+'/logs/train/'
@@ -114,13 +114,7 @@ def run_model(device, dataloaders, data, constant):
 
     #Split Original Model
     if (data == 'mnist'):
-        model = get_modelMNIST(10)
-    if (data == 'covid'):
-        model = get_modelCOVID()
-    if (data =='cifar10'):
-        model = get_modelCIFAR(10)
-        a = torch.tensor([[1, 2, 3],
-                   [4, 5, 6]])    
+        model = get_modelMNIST(10) 
     
     modelsA, modelsB = setup1(model, device, constant)
     num_of_batches = len(dataloaders["train"])
@@ -287,16 +281,12 @@ def run_model(device, dataloaders, data, constant):
                     target_tot_ = sum(target_tot, [])
                     pred_tot_ = sum(pred_tot, [])
                     cm1 = confusion_matrix(target_tot_, pred_tot_)
-                    if data == 'mnist' or data == 'cifar10':
+                    if data == 'mnist':
                         preds = torch.FloatTensor(pred_tot_)
                         targets = torch.FloatTensor(target_tot_)
                         acc = preds.eq(targets).float().mean()
                         epoch_loss = running_loss / len(dataloaders[phase].dataset)
                         logger.debug('Phase: {} Epoch: {} Loss: {:.4f} Accuracy {:.4f}'.format(phase, epoch, epoch_loss, acc))
-                    if data =='covid':
-                        f1_score_value = f1_score(pred_tot_, target_tot_)
-                        epoch_loss = running_loss / len(dataloaders[phase].dataset)
-                        logger.debug('Phase: {} Epoch: {} Loss: {:.4f} F1_Score {:.4f}'.format(phase, epoch, epoch_loss, f1_score_value))
                     logger.debug(cm1)
                     
                     if(torch.cuda.is_available()== True):

@@ -14,13 +14,15 @@ import FSL_algorithm.models.local.differential_privacy.model2_dp_equal_work_data
 
 this_dir = os.path.dirname(os.path.realpath(__file__))
 PKG_DIR = os.path.join(this_dir, '..')
-EXPR_DIR = os.path.join(this_dir, '..', '..', '..', 'EXPR')
-MAIN_DIR = os.path.join(this_dir, '..', '..', '..')
+EXP_DIR = os.path.join(this_dir, '..', '..', 'exp')
+os.makedirs(EXP_DIR, exist_ok=True)
 
 
 class Config:
     # attack experiment working directory
-    WD = "./m1_nop_reconstruction_client_20_equal_work_dataset_base_500_all_samples_all_features_attacker" 
+    WD = os.path.join(EXP_DIR, "m1_nop_reconstruction_client_20_equal_work_dataset_base_500_all_samples_all_features_attacker") 
+    # learner experiment parent directory
+    PD = EXP_DIR
     # attack experiment intermediate data dir
     INTERMEDIATE_DATA_DIR = "Train/"
 
