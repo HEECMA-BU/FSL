@@ -8,7 +8,7 @@ This repo contains the three implementations for reproducibility of our FSL pape
 syft==0.2.9
 sklearn
 opacus
-torch==1.6.0
+torch==1.6.0    # require python3.6/3.7/3.8 for pip
 ```
 
 ## How to Run
