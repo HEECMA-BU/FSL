@@ -44,7 +44,7 @@ Path(output_dir_name).mkdir(parents=True, exist_ok=True)
 
 print("Is cuda available? " + str(torch.cuda.is_available()))
 device = torch.device('cuda:3' if torch.cuda.is_available() else 'cpu')
-trainloader_, valloader_ = uploadMNIST(random.seed(constant.SEED), device, constant.BATCH_SIZE, 'equDiff')
+trainloader_, valloader_ = uploadMNIST(random.seed(constant.SEED), device, constant.BATCH_SIZE)
 trainloader, valloader = uploadEMNIST(random.seed(constant.SEED), device, constant.BATCH_SIZE)
 dataloaders_ = {'train': trainloader_, 'val': valloader_}
 dataloaders = {'train': trainloader, 'val': valloader}

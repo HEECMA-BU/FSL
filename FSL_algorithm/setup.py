@@ -2,7 +2,8 @@ from setuptools import find_packages
 from setuptools import setup
 
 REQUIRED_PACKAGES = [
-    'syft==0.2.9'
+        "sklearn",
+        "opacus"
 ]
 
 setup(

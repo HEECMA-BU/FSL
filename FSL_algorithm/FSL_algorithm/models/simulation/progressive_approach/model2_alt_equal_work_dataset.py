@@ -1,5 +1,5 @@
 ###################################################################################################
-#Modello 2
+#Federated Split Learning: Client Based Approach
 ###################################################################################################
 import logging
 import math
@@ -10,6 +10,7 @@ from torch import nn, optim
 import syft as sy
 import time
 from sklearn.metrics import confusion_matrix, f1_score
+from FSL_algorithm.resources.lenet import get_modelMNIST
 
 from FSL_algorithm.resources.setup import setup2, average_weights
 from FSL_algorithm.resources.functions import make_prediction, total_time_train

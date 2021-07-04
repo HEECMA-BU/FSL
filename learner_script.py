@@ -16,7 +16,7 @@ def main():
    print(sys.argv)
    if sys.argv[1] =='mnist':
       set_seed(constant.SEED)
-      trainloader, valloader = uploadMNIST(random.seed(constant.SEED), device, constant.BATCH_SIZE, 'equDiff')
+      trainloader, valloader = uploadMNIST(random.seed(constant.SEED), device, constant.BATCH_SIZE)
       dataloaders = {'train': trainloader, 'val': valloader}
 
    print('start')

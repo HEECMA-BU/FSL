@@ -21,11 +21,12 @@ os.makedirs(EXP_DIR, exist_ok=True)
 class Config:
     # attack experiment working directory
     WD = os.path.join(EXP_DIR, "m1_nop_reconstruction_client_20_equal_work_dataset_base_500_all_samples_all_features_attacker") 
+
     # learner experiment parent directory
     PD = EXP_DIR
-    # attack experiment intermediate data dir
-    INTERMEDIATE_DATA_DIR = "Train/"
 
+    # attack experiment intermediate data dir
+    INTERMEDIATE_DATA_DIR = "Train"
 
     # privacy-aware approach parameter (DC frequency or EPS)
     PARAM = 0.1
@@ -33,8 +34,19 @@ class Config:
     # model list
     MODELS = [psl_no_privacy_equal_work_dataset]
 
+    # MODELS to run:
+    # psl_no_privacy_equal_work_client
+    # fsl_no_privacy_equal_work_client
+    # psl_no_privacy_equal_work_dataset
+    # fsl_no_privacy_equal_work_dataset
+    # psl_alt_equal_work_dataset
+    # fsl_alt_equal_work_dataset
+    # psl_dp_equal_work_dataset
+    # fsl_dp_equal_work_dataset
+
     #Number of epochs
-    EPOCHS = 20
+    EPOCHS = 1
+
     #Number of epochs
     ATTACKER_EPOCHS = 10
     K = 3 #3 --> k=3 50 epoche 0.01
@@ -42,6 +54,7 @@ class Config:
 
     #Number of clients
     CLIENTS=20
+    
     #Number of max_clients (used in Equal Work Clients scenerio)
     MAXCLIENTS=500
 
