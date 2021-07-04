@@ -1,10 +1,12 @@
 # Federated Split Learning implementations
 
 ## Intro
-This repo contains the three implementations for reproducibility of our FSL paper. Under FSL_algorithm/models directory we have the model implemnetations. And under FSL_algorithm/resources we have some helper functions for dataloader and neural network definition.
+This repo contains the three implementations for reproducibility of our FSL paper. 
+Under FSL_algorithm/models directory we have the model implementations. And under FSL_algorithm/resources we have some helper functions for dataloader and neural network definition.
 
 ## Requirement
 ```
+python setup.py develop
 syft==0.2.9
 sklearn
 opacus
