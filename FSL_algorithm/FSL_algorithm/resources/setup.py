@@ -57,23 +57,6 @@ def setup2(model_all, device, constant):
     
     return local_models, models
 
-def setup3(model, device):
-    models = []
-    
-    modules = []
-    for module in model[:constant.CUTS[1]]:
-        modules.append(module)
-    sequential = nn.Sequential(*modules)
-    models.append(sequential.to(device))
-
-    modules = []
-    for module in model[constant.CUTS[1]:]:
-        modules.append(module)
-    sequential = nn.Sequential(*modules)
-    models.append(sequential.to(device))
-    
-    return models
-
 def average_weights(models, local_models, nosyft, constant):
     #average all 
     # for k in range(CLIENTS):

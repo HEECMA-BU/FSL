@@ -20,18 +20,6 @@ def write_file(vector, name_file):
       f.write("EPOCH {} {}\n".format(i, vector[i]))
     f.close()
 
-def set_path(input_dataset='./Data/images', output_dataset='./Data/images_mod'):
-    if not os.path.exists(output_dataset):
-        os.makedirs(output_dataset)
-
-    dir = os.listdir(output_dataset) 
-    
-    # Checking if the list is empty or not 
-    if len(dir) == 0: 
-        split_folders.ratio(input_dataset, output=output_dataset, seed=1337, ratio=(.7, .15, .15))
-    else: 
-        print("Not empty directory")
-
 def make_prediction(output, target, target_array, pred_array):
     pred = output.data.max(1, keepdim=True)[1]
     pred = pred.reshape(len(target)).tolist()
