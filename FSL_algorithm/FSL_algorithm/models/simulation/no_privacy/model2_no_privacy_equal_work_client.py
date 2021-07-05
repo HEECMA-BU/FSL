@@ -184,7 +184,7 @@ def run_model(device, dataloaders, data, constant):
     ##############################################################
                 intermediate = intermediate.get()
                 images = images.get()
-                if epoch==19:
+                if epoch==constant.EPOCHS-1:
                     torch.save(intermediate,   path1+str(epoch)+'_Client'+str(idx)+'.pt')
                     torch.save(labels,                      path3+str(epoch)+'_Client'+str(idx)+'.pt')
     ##############################################################
@@ -254,7 +254,7 @@ def run_model(device, dataloaders, data, constant):
         ##############################################################
                             intermediate = intermediate.get()
                             images = images.get()
-                            if epoch==19:
+                            if epoch==constant.EPOCHS-1:
                                 torch.save(intermediate,      path6+str(epoch)+'_Client'+str(idx)+'.pt')
                                 # torch.save(images,            path7+str(epoch)+'_Client'+str(idx)+'.pt')
                                 # images.get()

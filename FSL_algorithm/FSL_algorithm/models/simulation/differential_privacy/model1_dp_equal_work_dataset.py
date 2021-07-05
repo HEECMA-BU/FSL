@@ -244,7 +244,7 @@ def run_model(device, dataloaders, data, constant):
                             for idx, (intermediate, images, labels) in enumerate(zip(intermediate_list, images_array, labels_array)):
                                 intermediate = intermediate.get()
                                 images = images.get()
-                                if epoch==19:
+                                if epoch==constant.EPOCHS-1:
                                     torch.save(intermediate,   path1+str(epoch)+"_"+str(batch_idx)+'_Client'+str(idx)+'.pt')
                                     torch.save(labels,         path3+str(epoch)+"_"+str(batch_idx)+'_Client'+str(idx)+'.pt')
                                 del intermediate
@@ -267,7 +267,7 @@ def run_model(device, dataloaders, data, constant):
     ##############################################################
                             intermediate = intermediate.get()
                             images = images.get()
-                            if epoch==19:
+                            if epoch==constant.EPOCHS-1:
                                 torch.save(intermediate,   path6+str(epoch)+"_"+str(batch_idx)+'.pt')
                                 torch.save(labels,         path8+str(epoch)+"_"+str(batch_idx)+'.pt')
                                 
