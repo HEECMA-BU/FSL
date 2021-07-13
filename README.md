@@ -10,19 +10,36 @@ This repo contains the three implementations for reproducibility of our FSL pape
     - FSL_algorithm/resources we have some helper functions for dataloader and neural network definition.
     - FSL_algorithm/attacker there is the attacker model used to reconstruct data that each client send to server.
 
-## Requirement
+## Requirement(Simulation)
 ```
-- in the folder FSL_algorithm run "python setup.py develop" to nstall the package
+- in the root folder FSL run "python env_setup.py develop" to install the package
 Then install the following packages:
     - syft==0.2.9
     - torch==1.6.0    # require python3.6/3.7/3.8 for pip
 ```
+## Requirement(Distributed)
+```
+- in the root folder FSL run "python env_setup.py develop" to install the package
+Then install the following packages:
+    - syft==0.2.8
+    - PyGrid@4ad52e36bc13f2d15a1df395187f853526b98f1f
+```
 ## How to Run
-### Learner
+### Learner(Simulation)
+```
 python3 learner_script.py mnist
+```
+
+### Learner(Simulation)
+```
+- on one node (orchestrator):
+    - python3 learner_script.py mnist
+- on each of other nodes (e.g., for FSL with one split and two pairs, we need $2*2=4$ workers)
+    - (following the tutorial at https://github.com/OpenMined/PyGrid/tree/4ad52e36bc13f2d15a1df395187f853526b98f1f#manual-start)
+```
 
 ### Attacker
 python3 attack_script.py
 
 ### experiment Configurations
-All configurations i,e, DC frequency, noise_multiplier, number of clients, can be find in FSL_algorithm/resources/config.py, 
+All configurations i,e, DC frequency, noise_multiplier, number of clients, can be find in FSL_algorithm/resources/config.py
