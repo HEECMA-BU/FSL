@@ -12,6 +12,7 @@ import syft as sy
 import time
 
 from FSL_algorithm.resources.lenet import get_modelMNIST
+from FSL_algorithm.resources.lenet import get_modelCIFAR10
 
 from FSL_algorithm.resources.classes import SingleSplitNN
 from FSL_algorithm.resources.setup import setup1
@@ -59,7 +60,7 @@ def train(x, target, splitNN, batch_size, batch_idx):
 def run_model(device, dataloaders, data, constant):
     if(torch.cuda.is_available()== True):
         torch.cuda.reset_max_memory_allocated()
-    wd = os.path.join(constant.PD, 'm1_nop_reconstruction_client_'+str(constant.CLIENTS)+"_vary_partition_size_fix_dataset_base_"+str(constant.MAXCLIENTS))
+    wd = os.path.join(constant.PD, 'm1_nop_reconstruction_client_'+str(constant.CLIENTS)+"_vary_partition_size_fix_dataset_base_"+str(constant.MAXCLIENTS))+"_with_"+str(data)
     Path(wd).mkdir(parents=True, exist_ok=True)
 
     logs_dirpath = wd+'/logs/train/'
@@ -96,6 +97,8 @@ def run_model(device, dataloaders, data, constant):
     #Split Original Model
     if (data == 'mnist'):
         model = get_modelMNIST(10)
+    if (data == 'cifar10'):
+        model = get_modelCIFAR10(10)
     
     modelsA, modelsB = setup1(model, device, constant)
     num_of_batches = len(dataloaders["train"])

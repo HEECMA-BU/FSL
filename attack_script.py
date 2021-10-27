@@ -43,7 +43,7 @@ output_dir_name =   wd+'/reconstrucion/Train/'
 Path(output_dir_name).mkdir(parents=True, exist_ok=True)
 
 print("Is cuda available? " + str(torch.cuda.is_available()))
-device = torch.device('cuda:3' if torch.cuda.is_available() else 'cpu')
+device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
 trainloader_, valloader_ = uploadMNIST(random.seed(constant.SEED), device, constant.BATCH_SIZE)
 trainloader, valloader = uploadEMNIST(random.seed(constant.SEED), device, constant.BATCH_SIZE)
 dataloaders_ = {'train': trainloader_, 'val': valloader_}
@@ -53,7 +53,7 @@ from os import walk
 equal_count_sum = 0
 (dirpath, dirname_l, filename_l) = next(walk(input_dirname))
 # filename_l = []
-trials = 150
+trials = 1
 print("trials: " + str(trials))
 logger.debug("trials: " + str(trials))
 for i in range(trials):
@@ -61,7 +61,7 @@ for i in range(trials):
     model = lenetAttack.train_autoencoder(dataloaders, logger, device, wd, constant)
     my_extended_model = lenetAttack.train_my_extended_model(dataloaders_, logger, device, constant)
     for filename in filename_l:
-        if "19" not in filename.split("_")[0]:
+        if constant.attack_epoch not in filename.split("_")[0]:
             continue
         intermediate = torch.load(input_dirname+filename, map_location=device)
         # print(intermediate)

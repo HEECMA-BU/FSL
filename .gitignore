@@ -133,6 +133,11 @@ exp/
 
 # Data
 mnist/
+data/
+emnist/
 
 # MacOS
 .DS_Store
+
+
+

@@ -4,6 +4,7 @@ from FSL_algorithm.resources.config import Config as constant
 
 from FSL_algorithm.resources.functions import set_seed
 from FSL_algorithm.resources.uploads.uploadMNIST import uploadMNIST
+from FSL_algorithm.resources.uploads.uploadCIFAR10 import uploadCIFAR10
 import sys
 
 def main():
@@ -18,6 +19,10 @@ def main():
       set_seed(constant.SEED)
       trainloader, valloader = uploadMNIST(random.seed(constant.SEED), device, constant.BATCH_SIZE)
       dataloaders = {'train': trainloader, 'val': valloader}
+   if sys.argv[1] == 'cifar10':
+       set_seed(constant.SEED)
+       trainloader, valloader = uploadCIFAR10(random.seed(constant.SEED), device, constant.BATCH_SIZE)
+       dataloaders = {'train': trainloader, 'val': valloader}
 
    print('start')
    models = constant.MODELS
