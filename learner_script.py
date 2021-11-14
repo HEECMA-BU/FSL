@@ -28,7 +28,7 @@ def main():
    models = constant.MODELS
    for i, model in enumerate(models):
       print(i, model)
-      model.run_model(device,dataloaders, sys.argv[1], constant)
+      model.run_model(device, dataloaders, sys.argv[1], constant)
 
 
 

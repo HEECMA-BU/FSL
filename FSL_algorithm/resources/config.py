@@ -43,7 +43,7 @@ class Config:
     PARAM = 2
 
     # model list
-    MODELS = [psl_no_privacy_vary_partition_size_fix_dataset]
+    MODELS = [fsl_no_privacy_fix_partition_size_vary_dataset]
 
     # MODELS to run:
     # psl_no_privacy_fix_partition_size_vary_dataset
@@ -89,7 +89,7 @@ class Config:
     OPTIMIZER ="Adam"
 
     #Learning rate
-    LR = 3e-4
+    LR = 1e-4
 
     #Count how many times f1_score greater than f1_scorebest
     MAX_COUNTER = 5

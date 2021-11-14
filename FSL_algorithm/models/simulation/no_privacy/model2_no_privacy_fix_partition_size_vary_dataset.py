@@ -8,10 +8,12 @@ from time import time
 
 import torch
 from torch import nn, optim
+from torch.optim.lr_scheduler import ExponentialLR
 import syft as sy
 import time
 from sklearn.metrics import confusion_matrix, f1_score
 from FSL_algorithm.resources.lenet import get_modelMNIST
+from FSL_algorithm.resources.lenet import get_modelCIFAR10
 
 from FSL_algorithm.resources.setup import setup2, average_weights
 from FSL_algorithm.resources.functions import make_prediction, total_time_train
@@ -94,8 +96,27 @@ def run_model(device, dataloaders, data, constant):
     sy.local_worker.is_client_worker = False
     
     #Set up Model
+    print(data)
+
     if (data == 'mnist'):
         model_all = get_modelMNIST(10)
+
+
+    print(data)
+    print(data)
+    print(data)
+    print(data)
+    print(data)
+    print(data)
+    if (data == 'cifar10'):
+        print(data)
+        print(data)
+        print(data)
+        print(data)
+        print(data)
+        print(data)
+        model_all = get_modelCIFAR10(10)
+
     # if (data == 'covid'):
     #     model_all = get_modelCOVID()
    
@@ -104,6 +125,7 @@ def run_model(device, dataloaders, data, constant):
 
     #Optimizer
     optimizers = {}
+    scheduler = {}
     for i in range(constant.CLIENTS):
         optimizers['optimizer{}'.format(i+1)] =  [ 
             torch.optim.AdamW(model.parameters(), lr=constant.LR, betas=(0.9, 0.999), eps=1e-08, weight_decay=0.01, amsgrad=False)
@@ -111,6 +133,7 @@ def run_model(device, dataloaders, data, constant):
             else
             torch.optim.SGD(model.parameters(), lr=0.03,)
             for model in models['models{}'.format(i+1)]]
+        scheduler['optimizer{}'.format(i+1)] = [ExponentialLR(opt_init, gamma=0.9) for opt_init in optimizers['optimizer{}'.format(i+1)]]
 
     #Workers
     # client_array = []
@@ -159,8 +182,9 @@ def run_model(device, dataloaders, data, constant):
                 for i in range(constant.THOR):
                     # models['models{}'.format(k+1)][i].send('client{}{}'.format(k+1, i))
                     models['models{}'.format(k+1)][i].send(client_array[k][i])
-                    optimizers['optimizer{}'.format(k+1)][i] = optim.AdamW(models['models{}'.format(k+1)][i].parameters(), lr=constant.LR, betas=(0.9, 0.999), eps=1e-08, weight_decay=0.01, amsgrad=False)
-        
+                    optimizer1 = optim.AdamW(models['models{}'.format(k+1)][i].parameters(), lr=constant.LR, betas=(0.9, 0.999), eps=1e-08, weight_decay=0.01, amsgrad=False)
+                    scheduler['optimizer{}'.format(k+1)][i] = ExponentialLR(optimizer1, gamma=0.9)
+                    optimizers['optimizer{}'.format(k+1)][i] = optimizer1
         for i in range(constant.THOR):
                 models["models1"][i].train()
 
@@ -201,6 +225,10 @@ def run_model(device, dataloaders, data, constant):
                     logger.debug('Batches: {}, Expected_Batches: {}, constant.CLIENTS: {}, constant.MAXCLIENTS: {}, Total_Batches: {}'.format(j, expected_batches, constant.CLIENTS, constant.MAXCLIENTS, len(dataloaders['train'])))
                     break
         else:
+            for k in range(constant.CLIENTS):
+                for i in range(constant.THOR):
+                    scheduler['optimizer{}'.format(k+1)][i].step()
+                    
             target_tot_ = sum(target_tot, [])
             pred_tot_ = sum(pred_tot, [])
             cm1 = confusion_matrix(target_tot_, pred_tot_)
