@@ -1,7 +1,7 @@
 import torch
 
 class DistanceCorrelationLossWrapper(torch.nn.modules.loss._Loss):
-    def __init__(self, dcor_weighting: float = 0.1) -> None:
+    def __init__(self, dcor_weighting: float = 0.3) -> None:
         super().__init__()
         self.dcor_weighting = dcor_weighting
 

@@ -53,10 +53,10 @@ class MultiSplitNN(torch.nn.Module):
         return backward_client
 
     def forwardA(self, x):
-        # begin_clients = time.time()
+        begin_clients = time.time()
         self.inputs[0] = x
         self.outputs[0] = self.models[0](self.inputs[0])
-        # forward_clients = time.time() - begin_clients
+        forward_clients = time.time() - begin_clients
 
         # begin_server = time.time()
         # for i in range(1, len(self.models)):
@@ -65,7 +65,7 @@ class MultiSplitNN(torch.nn.Module):
         #         self.inputs[i] = self.inputs[i].move(self.models[i].location).requires_grad_()               
         #     self.outputs[i] = self.models[i](self.inputs[i])
         # forward_server = time.time() - begin_server
-        return self.outputs[0]
+        return self.outputs[0], forward_clients
 
     def backwardA_NoPeek(self):
         begin_clients = time.time()
@@ -111,11 +111,19 @@ class MultiSplitNN(torch.nn.Module):
             opt.zero_grad()
         
     def stepA(self):
+        t0 = time.time()
         self.optimizers[0].step()
+        t1 = time.time()
+        return t1-t0
 
     def step(self):
+        step_time = []
         for opt in self.optimizers:
+            t0 = time.time()
             opt.step()
+            t1 = time.time()
+            step_time.append(t1-t0)
+        return step_time
     
     def train(self):
         for model in self.models:
@@ -175,7 +183,8 @@ class SingleSplitNN(torch.nn.Module):
             ret.append(self.outputsA[i])
         return ret
            
-    def for_back_B(self, target, xA):       
+    def for_back_B(self, target, xA):   
+        forward_t0 = time.time()    
         loss=0
         target_remote_arr=[]
         x_remote_arr=[]
@@ -200,6 +209,7 @@ class SingleSplitNN(torch.nn.Module):
         
         self.outputsB[0] = self.modelsB[0](inputsB)
         pred = self.outputsB[-1]
+        forward_t1 = time.time()   
 
         # criterion = NoPeekLoss(0.1)
         # intermediate = torch.cat((self.outputsA[0].copy().get(), self.outputsA[1].copy().get()), 0)
@@ -214,25 +224,29 @@ class SingleSplitNN(torch.nn.Module):
         # xA =  torch.cat((xA[0].send(), xA[1]),0)
         # loss = criterion(xA, intermediate, pred, third_target)
 
-
-
+        backward_t0 = time.time()
         criterion = nn.CrossEntropyLoss()
         loss = criterion(pred, third_target)
-
-
-        third_target.get()
-        del third_target
+        
         # g = make_dot(loss)
         # g.view()
         loss.backward()
-        return loss, inputsB, pred
+        backward_t1 = time.time()
+
+        third_target.get()
+        del third_target
+        return loss, inputsB, pred, forward_t1-forward_t0, backward_t1-backward_t0
      
     def backwardA(self, batch_size, inputsB):
+        backward_t0 = time.time()
         grad_in = inputsB.grad.copy()
         
         inputsB = inputsB.get()
         del inputsB
         #grad_inA = [None]*len(self.modelsA)
+        temp_l = []
+        o_l = []
+        xA_l = []
         for i, (o, xA) in enumerate(zip(self.outputsA, self.inputsA)):
             # temp = grad_in.location._objects[grad_in.id_at_location]
             temp = grad_in[i*batch_size:(i+1)*batch_size].copy()
@@ -243,6 +257,11 @@ class SingleSplitNN(torch.nn.Module):
             # g = make_dot(o)
             # g.view()
             o.backward(temp)
+            temp_l.append(temp)
+            o_l.append(o)
+            xA_l.append(xA)
+        backward_t1 = time.time()
+        for temp, o, xA in zip(temp_l, o_l, xA_l):
             temp = temp.get()
             del temp
             del o
@@ -263,6 +282,8 @@ class SingleSplitNN(torch.nn.Module):
         # self.inputsA[0].grad = grad_avg
         # grad_avg = grad_avg.move(self.inputsA[1].location)
         # self.inputsA[1].grad = grad_avg
+        return backward_t1-backward_t0
+
 
     def backwardA_NoPeek(self):
         for i, (o, xA) in enumerate(zip(self.outputsA, self.inputsA)):
@@ -302,18 +323,26 @@ class SingleSplitNN(torch.nn.Module):
     #         #   
 
     def step(self, batch_idx):
+        client_step_t0 = time.time()
         for opt in self.optimizersA:
             opt.step()
+        client_step_t1 = time.time()
 
+        server_step_t0 = time.time()
         for opt in self.optimizersB:
             opt.step()
+        server_step_t1 = time.time()
+        return client_step_t1-client_step_t0, server_step_t1-server_step_t0
 
     def stepA(self):
+        client_step_t0 = time.time()
         for opt in self.optimizersA:
             opt.step()
+        client_step_t1 = time.time()
 
         # for opt in self.optimizersB:
         #     opt.step()
+        return client_step_t1-client_step_t0
             
     
     def train(self):

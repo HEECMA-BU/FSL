@@ -5,7 +5,9 @@ import json
 import FSL_algorithm.models.simulation.no_privacy.model1_no_privacy_fix_partition_size_vary_dataset as psl_no_privacy_fix_partition_size_vary_dataset
 import FSL_algorithm.models.simulation.no_privacy.model2_no_privacy_fix_partition_size_vary_dataset as fsl_no_privacy_fix_partition_size_vary_dataset
 import FSL_algorithm.models.simulation.no_privacy.model1_no_privacy_vary_partition_size_fix_dataset as psl_no_privacy_vary_partition_size_fix_dataset
+# import FSL_algorithm.models.simulation.no_privacy.model1_no_privacy_vary_partition_size_fix_dataset_bn as psl_no_privacy_vary_partition_size_fix_dataset
 import FSL_algorithm.models.simulation.no_privacy.model2_no_privacy_vary_partition_size_fix_dataset as fsl_no_privacy_vary_partition_size_fix_dataset
+# import FSL_algorithm.models.simulation.no_privacy.model2_no_privacy_vary_partition_size_fix_dataset_bn as fsl_no_privacy_vary_partition_size_fix_dataset
 
 import FSL_algorithm.models.simulation.progressive_approach.model1_alt_vary_partition_size_fix_dataset as psl_alt_vary_partition_size_fix_dataset
 import FSL_algorithm.models.simulation.progressive_approach.model2_alt_vary_partition_size_fix_dataset as fsl_alt_vary_partition_size_fix_dataset
@@ -31,19 +33,21 @@ os.makedirs(EXP_DIR, exist_ok=True)
 
 class Config:
     # attack experiment working directory
-    WD = os.path.join(EXP_DIR, "m1_nop_reconstruction_client_20_vary_partition_size_fix_dataset_base_500") 
-
+    WD = os.path.join(EXP_DIR, "m1_alt_1_reconstruction_vary_partition_size_fix_dataset_5_base_500") 
+    # WD = os.path.join(EXP_DIR, "m1_nop_reconstruction_client_5_vary_partition_size_fix_dataset_base_500") 
+        
     # learner experiment parent directory
     PD = EXP_DIR
 
     # attack experiment intermediate data dir
-    INTERMEDIATE_DATA_DIR = "Train/"
+    INTERMEDIATE_DATA_DIR = "BeforeTrainA/"
+    # INTERMEDIATE_DATA_DIR = "Train/"
 
     # privacy-aware approach parameter (DC frequency, or EPS)
-    PARAM = 2
+    PARAM = 1
 
     # model list
-    MODELS = [fsl_no_privacy_fix_partition_size_vary_dataset]
+    MODELS = [psl_alt_vary_partition_size_fix_dataset]
 
     # MODELS to run:
     # psl_no_privacy_fix_partition_size_vary_dataset
@@ -68,6 +72,10 @@ class Config:
     #Number of epochs
     EPOCHS = 20
 
+
+    #Dataset name
+    data = 'cifar10'
+
     #Attack Epoch
     attack_epoch = "9"
 
@@ -77,7 +85,7 @@ class Config:
     LAMBDA = 0.9 #0.01
 
     #Number of clients
-    CLIENTS=20
+    CLIENTS=5
     
     #Number of max_clients (used in Equal Work Clients scenerio)
     MAXCLIENTS=500
@@ -102,7 +110,7 @@ class Config:
     THOR = 2 
 
     #Cuts: index of cuts layer
-    CUTS = [0,3]
+    CUTS = [0,10]
     
     @staticmethod
     def load_config(dict_conf):

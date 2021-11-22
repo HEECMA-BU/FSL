@@ -9,10 +9,20 @@ import sys
 
 def main():
    config = {}
+   for idx in range(3, len(sys.argv)):
+      if idx%2 == 0:
+         continue
+      config[sys.argv[idx]] = sys.argv[idx+1]
    constant.load_config(config)
+   # print(constant)
+
+# =========================
+# adding config's
+   constant.CUTS=[0,7]
+# =========================
 
    print("Is cuda available? " + str(torch.cuda.is_available()))
-   device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
+   device = torch.device('cuda:'+sys.argv[2] if torch.cuda.is_available() else 'cpu')
 
    print(sys.argv)
    if sys.argv[1] =='mnist':

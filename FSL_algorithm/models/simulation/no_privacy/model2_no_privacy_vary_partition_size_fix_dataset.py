@@ -6,12 +6,15 @@ import logging
 import math
 import torch
 from time import time
+from torch.optim.lr_scheduler import ExponentialLR
 
 from torch import nn, optim
 import syft as sy
 import time
 from sklearn.metrics import confusion_matrix, f1_score
 from FSL_algorithm.resources.lenet import get_modelMNIST
+from FSL_algorithm.resources.lenet import get_modelCIFAR10
+from FSL_algorithm.resources.vgg import get_modelCIFAR
 
 from FSL_algorithm.resources.setup import setup2, average_weights
 from FSL_algorithm.resources.functions import make_prediction, total_time_train
@@ -52,14 +55,14 @@ def train(x, target, model):
 
     backward_server = time.time() - begin_server
     backward_client = model.backward()
-    model.step()    
-    return loss, pred, forward_clients+backward_client, forward_server+backward_server, intermediate
+    step_times = model.step()    
+    return loss, pred, forward_clients+backward_client, forward_server+backward_server, step_times, intermediate
 
 
 def run_model(device, dataloaders, data, constant):
     if(torch.cuda.is_available()== True):
         torch.cuda.reset_max_memory_allocated()
-    wd = os.path.join(constant.PD, 'm2_nop_reconstruction_client_'+str(constant.CLIENTS)+"_vary_partition_size_fix_dataset_base_"+str(constant.MAXCLIENTS))
+    wd = os.path.join(constant.PD, 'm2_nop_reconstruction_client_'+str(constant.CLIENTS)+"_vary_partition_size_fix_dataset_base_"+str(constant.MAXCLIENTS)+"_CUT_"+str(constant.CUTS[1]))
     Path(wd).mkdir(parents=True, exist_ok=True)
 
     logs_dirpath = wd+'/logs/train/'
@@ -96,6 +99,9 @@ def run_model(device, dataloaders, data, constant):
     #Set up Model
     if (data == 'mnist'):
         model_all = get_modelMNIST(10)
+    if (data == 'cifar10'):
+        print(data)
+        model_all = get_modelCIFAR(10, device)
     # if (data == 'covid'):
     #     model_all = get_modelCOVID()
    
@@ -104,6 +110,7 @@ def run_model(device, dataloaders, data, constant):
 
     #Optimizer
     optimizers = {}
+    scheduler = {}
     for i in range(constant.CLIENTS):
         optimizers['optimizer{}'.format(i+1)] =  [ 
             torch.optim.AdamW(model.parameters(), lr=constant.LR, betas=(0.9, 0.999), eps=1e-08, weight_decay=0.01, amsgrad=False)
@@ -111,8 +118,9 @@ def run_model(device, dataloaders, data, constant):
             else
             torch.optim.SGD(model.parameters(), lr=0.03,)
             for model in models['models{}'.format(i+1)]]
+        scheduler['optimizer{}'.format(i+1)] = [ExponentialLR(opt_init, gamma=0.9) for opt_init in optimizers['optimizer{}'.format(i+1)]]
 
-    #Workers
+    # Workers
     # client_array = []
     client_array = [[] for i in range(constant.CLIENTS)]
     # clientname_array = []
@@ -147,6 +155,10 @@ def run_model(device, dataloaders, data, constant):
         pred_tot = []
         total_time_client = 0
         total_time_server = 0
+        total_steptime_client = 0
+        total_steptime_server = 0
+        total_steptime_client_trainA = 0
+        total_time_client_trainA = 0
 
         since = time.time()
         for i in range(constant.CLIENTS):
@@ -159,8 +171,9 @@ def run_model(device, dataloaders, data, constant):
                 for i in range(constant.THOR):
                     # models['models{}'.format(k+1)][i].send('client{}{}'.format(k+1, i))
                     models['models{}'.format(k+1)][i].send(client_array[k][i])
-                    optimizers['optimizer{}'.format(k+1)][i] = optim.AdamW(models['models{}'.format(k+1)][i].parameters(), lr=constant.LR, betas=(0.9, 0.999), eps=1e-08, weight_decay=0.01, amsgrad=False)
-        
+                    optimizer1 = optim.AdamW(models['models{}'.format(k+1)][i].parameters(), lr=constant.LR, betas=(0.9, 0.999), eps=1e-08, weight_decay=0.01, amsgrad=False)
+                    scheduler['optimizer{}'.format(k+1)][i] = ExponentialLR(optimizer1, gamma=0.9)
+                    optimizers['optimizer{}'.format(k+1)][i] = optimizer1
         for i in range(constant.THOR):
                 models["models1"][i].train()
 
@@ -172,7 +185,7 @@ def run_model(device, dataloaders, data, constant):
                 labels = labels.to(device)
                 images = images.send(models['models{}'.format((j%constant.CLIENTS)+1)][0].location)
                 labels = labels.send(models['models{}'.format((j%constant.CLIENTS)+1)][constant.THOR-1].location)
-                loss, output, end_clients, end_server, intermediate = train(images, labels, splitNNs['splitNN{}'.format((j%constant.CLIENTS)+1)])
+                loss, output, end_clients, end_server, step_times, intermediate = train(images, labels, splitNNs['splitNN{}'.format((j%constant.CLIENTS)+1)])
                 temp = loss.get()
                 running_loss[j%constant.CLIENTS] += float(temp)
                 labels = labels.get()
@@ -180,12 +193,15 @@ def run_model(device, dataloaders, data, constant):
                 target_tot, pred_tot =  make_prediction(output, labels.tolist(), target_tot, pred_tot)
 
                 total_time_client += end_clients
+                total_steptime_client += step_times[0]
                 total_time_server += end_server
+                total_steptime_server += step_times[1]
+                
 
     ##############################################################
                 intermediate = intermediate.get()
                 images = images.get()
-                if epoch==constant.EPOCHS-1:
+                if idx <= 100:
                     torch.save(intermediate,   path1+str(epoch)+'_Client'+str(idx)+'.pt')
                     torch.save(labels,                      path3+str(epoch)+'_Client'+str(idx)+'.pt')
     ##############################################################
@@ -201,10 +217,14 @@ def run_model(device, dataloaders, data, constant):
                     logger.debug('Batches: {}, Expected_Batches: {}, constant.CLIENTS: {}, constant.MAXCLIENTS: {}, Total_Batches: {}'.format(j, expected_batches, constant.CLIENTS, constant.MAXCLIENTS, len(dataloaders['train'])))
                     break
         else:
+            for k in range(constant.CLIENTS):
+                for i in range(constant.THOR):
+                    scheduler['optimizer{}'.format(k+1)][i].step()
+
             target_tot_ = sum(target_tot, [])
             pred_tot_ = sum(pred_tot, [])
             cm1 = confusion_matrix(target_tot_, pred_tot_)
-            if data == 'mnist':
+            if data == 'mnist' or data == 'cifar10':
                 preds = torch.FloatTensor(pred_tot_)
                 targets = torch.FloatTensor(target_tot_)
                 acc = preds.eq(targets).float().mean() 
@@ -228,7 +248,7 @@ def run_model(device, dataloaders, data, constant):
                 averaging_time = time.time() - averaging_time
 
                 #Total Time for one epoch
-                total_time_train(since, epoch, total_time_client, total_time_server+averaging_time, logger, "train")
+                total_time_train(since, epoch, total_time_client, total_time_client_trainA, total_time_server, averaging_time, total_steptime_client, total_steptime_client_trainA, total_steptime_server, logger, "train")
                 
                 #Validation
                 for k in range(constant.CLIENTS):
@@ -244,7 +264,7 @@ def run_model(device, dataloaders, data, constant):
                 j = 0
                 running_loss_val = 0
                 with torch.no_grad():
-                    expected_batches = constant.CLIENTS*len(dataloaders['val'])/constant.MAXCLIENTS
+                    expected_batches = constant.CLIENTS*len(dataloaders['val'])/constant.CLIENTS
                     for filling_data in range(math.ceil(constant.CLIENTS/constant.CLIENTS)):
                         for idx, (images, labels) in enumerate(dataloaders['val']):
                             images = images.to(device)
@@ -255,7 +275,8 @@ def run_model(device, dataloaders, data, constant):
         ##############################################################
                             intermediate = intermediate.get()
                             images = images.get()
-                            if epoch==constant.EPOCHS-1:
+                            # if epoch==constant.EPOCHS-1:
+                            if idx <= 100:
                                 torch.save(intermediate,      path6+str(epoch)+'_Client'+str(idx)+'.pt')
                                 # torch.save(images,            path7+str(epoch)+'_Client'+str(idx)+'.pt')
                                 # images.get()
@@ -280,7 +301,7 @@ def run_model(device, dataloaders, data, constant):
                         target_tot_ = sum(target_tot, [])
                         pred_tot_ = sum(pred_tot, [])
                         cm1 = confusion_matrix(target_tot_, pred_tot_)
-                        if data == 'mnist':
+                        if data == 'mnist' or data == 'cifar10':
                             preds = torch.FloatTensor(pred_tot_)
                             targets = torch.FloatTensor(target_tot_)
                             acc = preds.eq(targets).float().mean()
@@ -304,7 +325,5 @@ def run_model(device, dataloaders, data, constant):
                                                 #  sum(torch.cuda.max_memory_cached() for i in range(torch.cuda.device_count()))))
                             logger.debug('{} {}'.format(sum(torch.cuda.max_memory_allocated() for i in range(torch.cuda.device_count())),
                                                 sum(torch.cuda.max_memory_cached() for i in range(torch.cuda.device_count()))))
-                        
-      
 
         epoch=epoch+1

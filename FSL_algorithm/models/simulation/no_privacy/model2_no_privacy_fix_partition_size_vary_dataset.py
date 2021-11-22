@@ -13,7 +13,7 @@ import syft as sy
 import time
 from sklearn.metrics import confusion_matrix, f1_score
 from FSL_algorithm.resources.lenet import get_modelMNIST
-from FSL_algorithm.resources.lenet import get_modelCIFAR10
+from FSL_algorithm.resources.vgg import get_modelCIFAR
 
 from FSL_algorithm.resources.setup import setup2, average_weights
 from FSL_algorithm.resources.functions import make_prediction, total_time_train
@@ -101,21 +101,9 @@ def run_model(device, dataloaders, data, constant):
     if (data == 'mnist'):
         model_all = get_modelMNIST(10)
 
-
-    print(data)
-    print(data)
-    print(data)
-    print(data)
-    print(data)
-    print(data)
     if (data == 'cifar10'):
         print(data)
-        print(data)
-        print(data)
-        print(data)
-        print(data)
-        print(data)
-        model_all = get_modelCIFAR10(10)
+        model_all = get_modelCIFAR(10)
 
     # if (data == 'covid'):
     #     model_all = get_modelCOVID()
@@ -232,7 +220,8 @@ def run_model(device, dataloaders, data, constant):
             target_tot_ = sum(target_tot, [])
             pred_tot_ = sum(pred_tot, [])
             cm1 = confusion_matrix(target_tot_, pred_tot_)
-            if data == 'mnist':
+
+            if data == 'mnist' or data == 'cifar10':
                 preds = torch.FloatTensor(pred_tot_)
                 targets = torch.FloatTensor(target_tot_)
                 acc = preds.eq(targets).float().mean() 
@@ -308,7 +297,7 @@ def run_model(device, dataloaders, data, constant):
                         target_tot_ = sum(target_tot, [])
                         pred_tot_ = sum(pred_tot, [])
                         cm1 = confusion_matrix(target_tot_, pred_tot_)
-                        if data == 'mnist':
+                        if data == 'mnist' or data == 'cifar10':
                             preds = torch.FloatTensor(pred_tot_)
                             targets = torch.FloatTensor(target_tot_)
                             acc = preds.eq(targets).float().mean()
