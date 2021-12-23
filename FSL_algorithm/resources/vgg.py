@@ -44,6 +44,8 @@ def vgg_fc_layer(size_in, size_out):
 def get_modelCIFAR(n_classes, device):
     model = models.vgg16(pretrained=False)
     state_dict = torch.load("vgg16-397923af.pth", map_location=device)
+    # state_dict = torch.load("vgg16-397923af.pth", map_location="cuda:1")
+    # state_dict = torch.load("vgg16-397923af.pth")
     model.load_state_dict(state_dict)
     # model = model.cuda()
     model = nn.Sequential(*(
@@ -52,9 +54,34 @@ def get_modelCIFAR(n_classes, device):
         list(list(model.children())[2][:-1]) + 
         [nn.Linear(4096, n_classes)])
         )
-    model = model.cuda()
+    model = model.to(device)
     return model
-def add_batchnorm(model):
+def add_small_filter(model, CUT_idxs):
+    modules=[]
+    for idx, layer in model.named_children():
+        idx = int(idx)
+        modules.append(layer)
+        if idx+1 in CUT_idxs:
+            modules.append(
+                nn.Conv2d(last_output_size, 1, kernel_size=3, padding=1)
+            )
+            modules.append(
+                nn.ReLU()
+            )
+            modules.append(
+                nn.Conv2d(1, last_output_size, kernel_size=3, padding=1)
+            )
+            modules.append(
+                nn.ReLU()
+            )
+        if 'weight' in layer._parameters:
+            last_output_size = layer._parameters['weight'].size()[0]
+    sequential = nn.Sequential(*modules)
+    sequential = sequential.cuda()
+    return sequential
+
+
+def add_batchnorm(model, device):
     modules=[]
     # list(model_all.named_children())[0][1]._get_name()
     length = len(model)
@@ -74,6 +101,7 @@ def add_batchnorm(model):
     sequential = nn.Sequential(*modules)
     sequential = sequential.cuda()
     return sequential
+
 def remove_dropout(model):
     modules=[]
     for idx, module in enumerate(model):

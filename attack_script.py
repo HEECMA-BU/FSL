@@ -26,6 +26,7 @@ def setup_logger(name, log_file):
 
 
 constant.CUTS=[0,int(sys.argv[1])]
+constant.INTERMEDIATE_DATA_DIR=sys.argv[4]
 
 wd = constant.WD+"_with_"+str(constant.data)+"_CUT_"+sys.argv[1]
 Path(wd).mkdir(parents=True, exist_ok=True)

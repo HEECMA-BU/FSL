@@ -33,21 +33,23 @@ os.makedirs(EXP_DIR, exist_ok=True)
 
 class Config:
     # attack experiment working directory
-    WD = os.path.join(EXP_DIR, "m1_alt_1_reconstruction_vary_partition_size_fix_dataset_5_base_500") 
+    # WD = os.path.join(EXP_DIR, "m2_nop_reconstruction_client_5_vary_partition_size_fix_dataset_base_500_BN") 
+    # WD = os.path.join(EXP_DIR, "m1_alt_1_reconstruction_vary_partition_size_fix_dataset_5_base_500") 
+    WD = os.path.join(EXP_DIR, "m2_alt_1_reconstruction_vary_partition_size_fix_dataset_5_base_500") 
     # WD = os.path.join(EXP_DIR, "m1_nop_reconstruction_client_5_vary_partition_size_fix_dataset_base_500") 
         
     # learner experiment parent directory
     PD = EXP_DIR
 
     # attack experiment intermediate data dir
-    INTERMEDIATE_DATA_DIR = "BeforeTrainA/"
-    # INTERMEDIATE_DATA_DIR = "Train/"
+    # INTERMEDIATE_DATA_DIR = "BeforeTrainA/"
+    INTERMEDIATE_DATA_DIR = "Train/"
 
     # privacy-aware approach parameter (DC frequency, or EPS)
     PARAM = 1
 
     # model list
-    MODELS = [psl_alt_vary_partition_size_fix_dataset]
+    MODELS = [fsl_no_privacy_vary_partition_size_fix_dataset]
 
     # MODELS to run:
     # psl_no_privacy_fix_partition_size_vary_dataset
@@ -97,7 +99,7 @@ class Config:
     OPTIMIZER ="Adam"
 
     #Learning rate
-    LR = 1e-4
+    LR = 0.000065
 
     #Count how many times f1_score greater than f1_scorebest
     MAX_COUNTER = 5

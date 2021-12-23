@@ -99,10 +99,10 @@ def run_model(device, dataloaders, data, constant):
         path4 = wd+'/intermediate/AfterTrainA'+str(index)+'/'
         Path(path4).mkdir(parents=True, exist_ok=True)
         alt_intermediate_logpath_l.append(path4)
-        path5 = wd+'/source/AfterTrainA/'+str(index)+'/'
+        path5 = wd+'/source/AfterTrainA'+str(index)+'/'
         Path(path5).mkdir(parents=True, exist_ok=True)
         alt_source_logpath_l.append(path5)
-        path9 = wd+'/labels/AfterTrainA/'+str(index)+'/'
+        path9 = wd+'/labels/AfterTrainA'+str(index)+'/'
         Path(path9).mkdir(parents=True, exist_ok=True)
         alt_label_logpath_l.append(path9)
 

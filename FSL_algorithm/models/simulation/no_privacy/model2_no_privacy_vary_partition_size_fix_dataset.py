@@ -14,7 +14,7 @@ import time
 from sklearn.metrics import confusion_matrix, f1_score
 from FSL_algorithm.resources.lenet import get_modelMNIST
 from FSL_algorithm.resources.lenet import get_modelCIFAR10
-from FSL_algorithm.resources.vgg import get_modelCIFAR
+from FSL_algorithm.resources.vgg import get_modelCIFAR, remove_dropout, add_batchnorm, add_small_filter
 
 from FSL_algorithm.resources.setup import setup2, average_weights
 from FSL_algorithm.resources.functions import make_prediction, total_time_train
@@ -62,7 +62,7 @@ def train(x, target, model):
 def run_model(device, dataloaders, data, constant):
     if(torch.cuda.is_available()== True):
         torch.cuda.reset_max_memory_allocated()
-    wd = os.path.join(constant.PD, 'm2_nop_reconstruction_client_'+str(constant.CLIENTS)+"_vary_partition_size_fix_dataset_base_"+str(constant.MAXCLIENTS)+"_CUT_"+str(constant.CUTS[1]))
+    wd = os.path.join(constant.PD, 'm2_nop_reconstruction_client_'+str(constant.CLIENTS)+"_vary_partition_size_fix_dataset_base_"+str(constant.MAXCLIENTS)+"_BN_with_"+str(data)+"_CUT_"+str(constant.CUTS[1]))
     Path(wd).mkdir(parents=True, exist_ok=True)
 
     logs_dirpath = wd+'/logs/train/'
@@ -102,6 +102,7 @@ def run_model(device, dataloaders, data, constant):
     if (data == 'cifar10'):
         print(data)
         model_all = get_modelCIFAR(10, device)
+        # model_all = add_batchnorm(model_all, device)
     # if (data == 'covid'):
     #     model_all = get_modelCOVID()
    
@@ -118,7 +119,7 @@ def run_model(device, dataloaders, data, constant):
             else
             torch.optim.SGD(model.parameters(), lr=0.03,)
             for model in models['models{}'.format(i+1)]]
-        scheduler['optimizer{}'.format(i+1)] = [ExponentialLR(opt_init, gamma=0.9) for opt_init in optimizers['optimizer{}'.format(i+1)]]
+        scheduler['optimizer{}'.format(i+1)] = [ExponentialLR(opt_init, gamma=0.99) for opt_init in optimizers['optimizer{}'.format(i+1)]]
 
     # Workers
     # client_array = []
@@ -169,13 +170,14 @@ def run_model(device, dataloaders, data, constant):
             for k in range(constant.CLIENTS):
                 splitNNs['splitNN{}'.format(k+1)].train()
                 for i in range(constant.THOR):
-                    # models['models{}'.format(k+1)][i].send('client{}{}'.format(k+1, i))
-                    models['models{}'.format(k+1)][i].send(client_array[k][i])
+                    models['models{}'.format(k+1)][i].send('client{}{}'.format(k+1, i))
+                    # models['models{}'.format(k+1)][i].send(client_array[k][i])
                     optimizer1 = optim.AdamW(models['models{}'.format(k+1)][i].parameters(), lr=constant.LR, betas=(0.9, 0.999), eps=1e-08, weight_decay=0.01, amsgrad=False)
-                    scheduler['optimizer{}'.format(k+1)][i] = ExponentialLR(optimizer1, gamma=0.9)
+                    scheduler['optimizer{}'.format(k+1)][i] = ExponentialLR(optimizer1, gamma=0.95)
                     optimizers['optimizer{}'.format(k+1)][i] = optimizer1
-        for i in range(constant.THOR):
-                models["models1"][i].train()
+        for k in range(constant.CLIENTS):
+            for i in range(constant.THOR):
+                models["models{}".format(k+1)][i].train()
 
         expected_batches = constant.CLIENTS*len(dataloaders['train'])/constant.CLIENTS
         j=0
@@ -214,6 +216,7 @@ def run_model(device, dataloaders, data, constant):
 
                 j=j+1
                 if j>=expected_batches:
+                # if j>=constant.CLIENTS:
                     logger.debug('Batches: {}, Expected_Batches: {}, constant.CLIENTS: {}, constant.MAXCLIENTS: {}, Total_Batches: {}'.format(j, expected_batches, constant.CLIENTS, constant.MAXCLIENTS, len(dataloaders['train'])))
                     break
         else:
@@ -244,7 +247,7 @@ def run_model(device, dataloaders, data, constant):
             with torch.no_grad():
                 #Average weights
                 averaging_time = time.time()
-                average_weights(models, local_models, 'False', constant)
+                average_weights(models, local_models, False, constant.CLIENTS, 1)
                 averaging_time = time.time() - averaging_time
 
                 #Total Time for one epoch
@@ -252,12 +255,15 @@ def run_model(device, dataloaders, data, constant):
                 
                 #Validation
                 for k in range(constant.CLIENTS):
-
-                    models['models{}'.format(k+1)][1].send('client{}{}'.format(k+1, 1))
-                    optimizers['optimizer{}'.format(k+1)][1] = optim.AdamW(models['models{}'.format(k+1)][1].parameters(), lr=constant.LR, betas=(0.9, 0.999), eps=1e-08, weight_decay=0.01, amsgrad=False)
-            
-                for i in range(constant.THOR):
-                    models["models1"][i].eval()
+                    for i in range(1, constant.THOR):
+                        models['models{}'.format(k+1)][i].send(client_array[k][i])
+                        optimizer1 = optim.AdamW(models['models{}'.format(k+1)][i].parameters(), lr=constant.LR, betas=(0.9, 0.999), eps=1e-08, weight_decay=0.01, amsgrad=False)
+                        scheduler['optimizer{}'.format(k+1)][i] = ExponentialLR(optimizer1, gamma=0.99)
+                        optimizers['optimizer{}'.format(k+1)][i] = optimizer1            
+                        
+                for k in range(constant.CLIENTS):
+                    for i in range(constant.THOR):
+                        models["models{}".format(k+1)][i].eval()
             
                 target_tot=[]
                 pred_tot=[]
