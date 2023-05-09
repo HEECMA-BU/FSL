@@ -3,7 +3,8 @@
 ## Intro
 This repo contains the three implementations for reproducibility of our FSL paper.
 - Poster CoNEXT 20: Valeria Turina, Zongshun Zhang, Flavio Esposito, and Ibrahim Matta. 2020. Combining split and federated architectures for efficiency and privacy in deep learning. In Proceedings of the 16th International Conference on emerging Networking EXperiments and Technologies (CoNEXT '20). Association for Computing Machinery, New York, NY, USA, 562–563. DOI:https://doi.org/10.1145/3386367.3431678
-- Paper IEEE Cloud 2021 is coming.
+- Paper IEEE Cloud 2021: V. Turina, Z. Zhang, F. Esposito, and I. Matta, “Federated or split? a performance and privacy analysis of hybrid split and federated learning architectures,” in IEEE CLOUD, 2021. DOI:http://dx.doi.org/10.1109/CLOUD53861.2021.00038
+- Journal Paper IEEE Transaction of Bid Data is under review.
 
 ## Directories
     - FSL_algorithm/models directory we have the model implementations (simulation and remote, the remote folder is in progress)
@@ -18,7 +19,7 @@ it would be needed to follow these steps to obtain a correctly configured enviro
 	$sudo apt-get update
 	
 -install venv and create a new env:
-    	$sudo apt-get update
+    $sudo apt-get update
    	$sudo apt install python3-venv
    	$python3 -m venv env
    	$source env/bin/activate
@@ -27,12 +28,16 @@ it would be needed to follow these steps to obtain a correctly configured enviro
    	$pip install --upgrade pip
 
 -install dependencies (require python3.6/3.7/3.8 for pip)   
+	# Please consider unzip the [env](https://drive.google.com/file/d/1ClL5ZlRQcKeE6RmUsoaJHpY2V3DNtYr2/view?usp=sharing) at repo root to simplify the steps, especially for DP implementations, which the syft version is not accessible anymore.
+
+	# Otherwise, please follow the next steps. 
 	# syft-0.2.9 dependencies
+	$sudo add-apt-repository ppa:savoury1/ffmpeg4
 	$sudo apt install libsrtp2-dev	
 	$sudo apt-get install -y libavformat-dev
 	$sudo apt-get install libavdevice-dev
 
-	<!-- $pip install git+https://github.com/OpenMined/PySyft.git@syft_0.2.x -->
+
 	$python3 -m pip install syft==0.2.9
 	$python3 -m pip install opacus==0.11.0
   	$python3 -m pip install torch==1.6.0 
@@ -78,8 +83,6 @@ it would be needed to follow these steps to obtain a correctly configured enviro
    	$tmux
    	$tmux attach -t 0
 
-- to install the pckage, in the root folder FSL run 
-	$python env_setup.py develop
 
 ```
 ## Requirement(Distributed)
