@@ -135,9 +135,10 @@ exp/
 mnist/
 data/
 emnist/
+cifar10/
 
 # MacOS
 .DS_Store
 
-
-
+# Model Weights
+FSL_algorithm/resources/vgg16-397923af.pth

@@ -26,8 +26,15 @@ it would be needed to follow these steps to obtain a correctly configured enviro
 -check python and pip versions
    	$pip install --upgrade pip
 
--install dependencies (require python3.6/3.7/3.8 for pip)   	
+-install dependencies (require python3.6/3.7/3.8 for pip)   
+	# syft-0.2.9 dependencies
+	$sudo apt install libsrtp2-dev	
+	$sudo apt-get install -y libavformat-dev
+	$sudo apt-get install libavdevice-dev
+
+	<!-- $pip install git+https://github.com/OpenMined/PySyft.git@syft_0.2.x -->
 	$python3 -m pip install syft==0.2.9
+	$python3 -m pip install opacus==0.11.0
   	$python3 -m pip install torch==1.6.0 
    	$pip install -U scikit-learn scipy matplotlib
 
@@ -49,6 +56,9 @@ it would be needed to follow these steps to obtain a correctly configured enviro
 
 -check cuda is v10.2
    	$nvidia-smi
+
+-download pretrained vgg16 weights for pytorch
+	$wget -P FSL_algorithm/resources/ https://download.pytorch.org/models/vgg16-397923af.pth
 
 -if required install wheel   
    	$pip install wheel

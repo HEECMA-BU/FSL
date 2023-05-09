@@ -1,5 +1,5 @@
 ###################################################################################################
-#Federated Split Learning with Differential Privacy
+#Modello 2
 ###################################################################################################
 import logging
 import math
@@ -17,10 +17,8 @@ from FSL_algorithm.resources.lenet import get_modelCIFAR10
 from FSL_algorithm.resources.VPN import get_modelVPN
 from FSL_algorithm.resources.vgg import get_modelCIFAR, remove_dropout, add_batchnorm, add_small_filter
 
-from FSL_algorithm.resources.setup import setup2, average_weights
+from FSL_algorithm.resources.setup import average_weights_4, setup2, average_weights, setup3_4
 from FSL_algorithm.resources.functions import make_prediction, total_time_train
-
-from opacus import PrivacyEngine
 
 from FSL_algorithm.resources.classes import MultiSplitNN
 
@@ -48,27 +46,34 @@ def setup_logger(name, log_file):
     return logger
 
 
-def train(x, target, model):
-    model.zero_grads()
+def train(x, target, model, train_shared):
 
-    pred, forward_clients, forward_server, intermediate = model.forward(x)
-    begin_server = time.time()  
+    model.zero_grads()
+    model.set_parameter_requires_grad(train_shared)
+
+    pred, forward_time, _, intermediate = model.forward(x)
+    backward_time = time.time()  
+
     # without noPeek
     criterion = nn.CrossEntropyLoss()
     loss = criterion(pred, target)
     loss.backward()
+    backward_time = time.time() - backward_time
+    # Gradient Size/Params Size: [torch.Size([6, 1, 5, 5]), torch.Size([6]), torch.Size([16, 6, 5, 5]), torch.Size([16]), torch.Size([120, 16, 5, 5]), torch.Size([120]), torch.Size([84, 120]), torch.Size([84]), torch.Size([10, 84]), torch.Size([10])]
 
-    backward_server = time.time() - begin_server
-    backward_client = model.backward()
-    step_times = model.step()    
-    return loss, pred, forward_clients, backward_client, forward_server, backward_server, step_times, intermediate
+    step_times = model.step_4(train_shared)  
+
+    if train_shared: 
+        return loss, pred, 0, 0, forward_time, backward_time, step_times, intermediate
+    else:
+        return loss, pred, forward_time, backward_time, 0, 0, step_times, intermediate
 
 
-def run_model(device, dataloaders, data, constant):
+def run_model(device, dataloaders, data, constant):  # layers in between CUTS is corresponding to the client in FSL
     if(torch.cuda.is_available()== True):
         torch.cuda.reset_max_memory_allocated()
         torch.cuda.empty_cache()
-    wd = os.path.join(constant.PD, 'm2_dp_'+str(constant.PARAM)+'_reconstruction_client_'+str(constant.CLIENTS)+"_vary_partition_size_fix_dataset_base_"+str(constant.MAXCLIENTS)+"_"+str(constant.CUTS[1])+"_"+str(data)+"_"+constant.DATA_DIST+"_SerAvg")
+    wd = os.path.join(constant.PD, 'm4_nop_reconstruction_client_'+str(constant.CLIENTS)+"_vary_partition_size_fix_dataset_base_"+str(constant.MAXCLIENTS)+"_"+str(constant.CUTS[1])+"_"+str(data)+"_"+constant.DATA_DIST)
     Path(wd).mkdir(parents=True, exist_ok=True)
 
     logs_dirpath = wd+'/logs/train/'
@@ -97,7 +102,7 @@ def run_model(device, dataloaders, data, constant):
     Path(path7).mkdir(parents=True, exist_ok=True)
     path8 = wd+'/labels/Val/'
     Path(path8).mkdir(parents=True, exist_ok=True)
-
+ 
     hook = sy.TorchHook(torch)
     sy.local_worker.is_client_worker = False
     
@@ -116,33 +121,39 @@ def run_model(device, dataloaders, data, constant):
     #     model_all = get_modelCOVID()
 
     #Split Original Model
-    local_models, models = setup2(model_all, device, constant)
+    local_models, models = setup3_4(model_all, device, constant)
 
     #Optimizer
     optimizers = {}
     scheduler = {}
     for i in range(constant.CLIENTS):
-        optimizers['optimizer{}'.format(i+1)] =  [ 
-            torch.optim.AdamW(model.parameters(), lr=constant.LR, betas=(0.9, 0.999), eps=1e-08, weight_decay=0.01, amsgrad=False)
-            if constant.OPTIMIZER == 'Adam'
-            else
-            torch.optim.SGD(model.parameters(), lr=0.03,)
-            for model in models['models{}'.format(i+1)]]
-        scheduler['optimizer{}'.format(i+1)] = [ExponentialLR(opt_init, gamma=0.9) for opt_init in optimizers['optimizer{}'.format(i+1)]]
+        # for i in range(constant.THOR):
+            seqs = []
+            for model in models['models{}'.format(i+1)]:
+                seqs.append(nn.Sequential(*(model[:constant.CUTS[1]])))
+                seqs.append(nn.Sequential(*(model[constant.CUTS[1]:])))
+
+            optimizers['optimizer{}'.format(i+1)] =  [
+                torch.optim.AdamW(model.parameters(), lr=constant.LR, betas=(0.9, 0.999), eps=1e-08, weight_decay=0.01, amsgrad=False)
+                if constant.OPTIMIZER == 'Adam'
+                else
+                torch.optim.SGD(model.parameters(), lr=0.03,)
+                for model in seqs]
+            scheduler['optimizer{}'.format(i+1)] = [ExponentialLR(opt_init, gamma=0.9) for opt_init in optimizers['optimizer{}'.format(i+1)]]   #TODO: check number of optimizors and models(only 1 in each client)
 
     # Workers
     # client_array = []
     client_array = [[] for i in range(constant.CLIENTS)]
     # clientname_array = []
     for k in range(constant.CLIENTS):
-        for i in range(constant.THOR):
+        for i in range(1): # constant.THOR=1
             remote_client = sy.VirtualWorker(hook, id="client{}{}".format(k+1, i))
             client_array[k].append(remote_client)
 
     #Create splitNN model
     splitNNs = {}
     for i in range(constant.CLIENTS):
-        splitNNs['splitNN{}'.format(i+1)] = MultiSplitNN(models['models{}'.format(i+1)], optimizers['optimizer{}'.format(i+1)])
+        splitNNs['splitNN{}'.format(i+1)] = MultiSplitNN(models['models{}'.format(i+1)], optimizers['optimizer{}'.format(i+1)], constant.CUTS)
 
     running_loss = []
     lun =[]
@@ -153,8 +164,7 @@ def run_model(device, dataloaders, data, constant):
     counter = 0
     epoch=0
     best_f1_score=0
-    privacy_engines = []
-    
+   
     while(epoch < constant.EPOCHS):
         logger.debug('Epoch {}/{}'.format(epoch, constant.EPOCHS - 1))
         logger.debug('-' * 10)
@@ -173,7 +183,6 @@ def run_model(device, dataloaders, data, constant):
         total_steptime_client_trainA = 0
         total_time_client_trainA = 0
 
-        # since = time.time()
         for i in range(constant.CLIENTS):
             running_loss[i]=0
             lun[i]=0
@@ -181,39 +190,21 @@ def run_model(device, dataloaders, data, constant):
         if (epoch == 0):
             for k in range(constant.CLIENTS):
                 splitNNs['splitNN{}'.format(k+1)].train()
-                privacy_engines_line = []
-                # for i in range(constant.THOR):
-                #     optimizers['optimizer{}'.format(k+1)][i] = optim.AdamW(models['models{}'.format(k+1)][i].parameters(), lr=constant.LR, betas=(0.9, 0.999), eps=1e-08, weight_decay=0.01, amsgrad=False)
-                #     privacy_engine = PrivacyEngine(models['models{}'.format(k+1)][i],
-                #                     batch_size=constant.BATCH_SIZE, 
-                #                     sample_size=len(dataloaders['train'][0].dataset), 
-                #                     alphas=range(2,32), 
-                #                     noise_multiplier=constant.PARAM,
-                #                     max_grad_norm=1.0)
-                #     privacy_engine.attach(optimizers['optimizer{}'.format(k+1)][i])
-                #     privacy_engines_line.append(privacy_engine)
-                #     models['models{}'.format(k+1)][i] = models['models{}'.format(k+1)][i].send(client_array[k][i])
-                # privacy_engines.append(privacy_engines_line)
-                for i in range(constant.THOR):
+                for i in range(1): # constant.THOR = 1
                     # models['models{}'.format(k+1)][i].send('client{}{}'.format(k+1, i))
-                    models['models{}'.format(k+1)][i] = models['models{}'.format(k+1)][i].send(client_array[k][i])
-                    # optimizer1 = optim.AdamW(models['models{}'.format(k+1)][i].parameters(), lr=constant.LR, betas=(0.9, 0.999), eps=1e-08, weight_decay=0.01, amsgrad=False)
-                    scheduler['optimizer{}'.format(k+1)][i] = ExponentialLR(optimizers['optimizer{}'.format(k+1)][i], gamma=0.9)
-                    # optimizers['optimizer{}'.format(k+1)][i] = optimizer1
-                    privacy_engine = PrivacyEngine(models['models{}'.format(k+1)][i],
-                                    batch_size=constant.BATCH_SIZE, 
-                                    sample_size=len(dataloaders['train'][0].dataset), 
-                                    alphas=range(2,32), 
-                                    noise_multiplier=constant.PARAM,
-                                    max_grad_norm=1.0)
-                    privacy_engine.attach(optimizers['optimizer{}'.format(k+1)][i])
-                    privacy_engines_line.append(privacy_engine)
-                privacy_engines.append(privacy_engines_line)
-
+                    models['models{}'.format(k+1)][i].send(client_array[k][i])
+                seqs = []
+                for model in models['models{}'.format(k+1)]:
+                    seqs.append(nn.Sequential(*(model[:constant.CUTS[1]])))
+                    seqs.append(nn.Sequential(*(model[constant.CUTS[1]:])))
+                for i in range(len(seqs)):
+                    optimizer1 = optim.AdamW(seqs[i].parameters(), lr=constant.LR, betas=(0.9, 0.999), eps=1e-08, weight_decay=0.01, amsgrad=False)
+                    scheduler['optimizer{}'.format(k+1)][i] = ExponentialLR(optimizer1, gamma=0.9)
+                    optimizers['optimizer{}'.format(k+1)][i] = optimizer1
         for k in range(constant.CLIENTS):
-            for i in range(constant.THOR):
+            for i in range(1): # constant.THOR=1
                 models["models{}".format(k+1)][i].train()
-
+                
         j=0
         # CLIENTS_range = CLIENTS//len(dataloaders['train'])
         loader_cli_map = {}
@@ -231,58 +222,60 @@ def run_model(device, dataloaders, data, constant):
                 images = images.to(device)
                 labels = labels.to(device)
                 images = images.send(models['models{}'.format(loader_cli_map[dat_idx][idx%len(loader_cli_map[dat_idx])]+1)][0].location)
-                labels = labels.send(models['models{}'.format(loader_cli_map[dat_idx][idx%len(loader_cli_map[dat_idx])]+1)][constant.THOR-1].location)
+                labels = labels.send(models['models{}'.format(loader_cli_map[dat_idx][idx%len(loader_cli_map[dat_idx])]+1)][0].location) # constant.THOR=1
+
+                for train_shared in [False, True]:
+                    loss, output, end_clients_forw, end_clients_back, end_server_forw, end_server_back, step_times, intermediate = train(images, labels, splitNNs['splitNN{}'.format(loader_cli_map[dat_idx][idx%len(loader_cli_map[dat_idx])]+1)], train_shared)
+                    temp = loss.get()
+                    running_loss[idx%constant.CLIENTS] += float(temp)
+                    labels_local = labels.copy().get()
+                    output = output.get()
+
+                    # pred, target_tot, pred_tot =  make_prediction(output, labels_local.tolist(), target_tot, pred_tot)
+                    target = labels_local.tolist()
+                    pred = output.data.max(1, keepdim=True)[1]
+                    pred = pred.reshape(len(target)).tolist()
+                    target_tot.append(target)
+                    pred_tot.append(pred)
+                    cli_target_map[loader_cli_map[dat_idx][idx%len(loader_cli_map[dat_idx])]+1].append(target)
+                    cli_pred_map[loader_cli_map[dat_idx][idx%len(loader_cli_map[dat_idx])]+1].append(pred)
+                    
+                    if train_shared:
+                        total_steptime_server += step_times[0]  # have just trained the corresponding server part in FSL
+                        total_time_server += end_server_forw + end_server_back
+                        total_time_server_forw += end_server_forw
+                        total_time_server_back += end_server_back
+                    else:
+                        total_steptime_client += step_times[0]  # have just trained the corresponding client part in FSL
+                        total_time_client += end_clients_forw + end_clients_back
+                        total_time_client_forw += end_clients_forw
+                        total_time_client_back += end_clients_back
 
 
-                loss, output, end_clients_forw, end_clients_back, end_server_forw, end_server_back, step_times, intermediate = train(images, labels, splitNNs['splitNN{}'.format(loader_cli_map[dat_idx][idx%len(loader_cli_map[dat_idx])]+1)])
-                temp = loss.get()
-                running_loss[idx%constant.CLIENTS] += float(temp)
-                labels = labels.get()
-                output = output.get()
+        ##############################################################
+                    save_time = time.time()
+                    intermediate = intermediate.get()
+                    # images = images.get()
+                    # if idx <= 100:
+                    #     torch.save(intermediate,   path1+str(epoch)+'_Client_'+str(dat_idx)+"_"+str(idx)+'.pt')
+                    #     torch.save(labels_local,         path3+str(epoch)+'_Client_'+str(dat_idx)+"_"+str(idx)+'.pt')
+                    save_time = time.time() - save_time
+                    since += save_time
+        ##############################################################
+                    lun[loader_cli_map[dat_idx][idx%len(loader_cli_map[dat_idx])]]=lun[loader_cli_map[dat_idx][idx%len(loader_cli_map[dat_idx])]]+len(images)
 
-                # pred, target_tot, pred_tot =  make_prediction(output, labels.tolist(), target_tot, pred_tot)
-                target = labels.tolist()
-                pred = output.data.max(1, keepdim=True)[1]
-                pred = pred.reshape(len(target)).tolist()
-                target_tot.append(target)
-                pred_tot.append(pred)
-                cli_target_map[loader_cli_map[dat_idx][idx%len(loader_cli_map[dat_idx])]+1].append(target)
-                cli_pred_map[loader_cli_map[dat_idx][idx%len(loader_cli_map[dat_idx])]+1].append(pred)
-                
-                total_steptime_server += step_times[1]  # have just trained the corresponding server part in FSL
-                total_time_server += end_server_forw + end_server_back
-                total_time_server_forw += end_server_forw
-                total_time_server_back += end_server_back
-                
-                total_steptime_client += step_times[0]
-                total_time_client += end_clients_forw + end_clients_back
-                total_time_client_forw += end_clients_forw
-                total_time_client_back += end_clients_back
-
-
-    ##############################################################
-                save_time = time.time()
-                intermediate = intermediate.get()
-                images = images.get()
-                # if idx <= 100:
-                #     torch.save(intermediate,   path1+str(epoch)+'_Client_'+str(dat_idx)+"_"+str(idx)+'.pt')
-                #     torch.save(labels,         path3+str(epoch)+'_Client_'+str(dat_idx)+"_"+str(idx)+'.pt')
-                save_time = time.time() - save_time
-                since += save_time
-    ##############################################################
-                lun[loader_cli_map[dat_idx][idx%len(loader_cli_map[dat_idx])]]=lun[loader_cli_map[dat_idx][idx%len(loader_cli_map[dat_idx])]]+len(images)
-
-                del intermediate
+                    del intermediate
+                    del labels_local
                 del images
-                # labels = labels.get()
+                labels = labels.get()
                 del labels
                 sy.local_worker.clear_objects()
 
                 j=j+1
                 # break
         else:
-            # for k in range(constant.CLIENTS):
-            #     for i in range(constant.THOR):
+            # for k in range(CLIENTS):
+            #     for i in range(1): # constant.THOR=1
             #         scheduler['optimizer{}'.format(k+1)][i].step()
 
             # summary for each client
@@ -324,39 +317,33 @@ def run_model(device, dataloaders, data, constant):
                 # print(cm1)
                 # logger.debug(cm1)
                 for i in range(constant.CLIENTS):
-                    logger.debug('Phase: {} Epoch: {} Loss: {:.4f} F1_Score {:.4f}'.format('train', epoch, running_loss[i%constant.CLIENTS]/lun[i%constant.CLIENTS], f1_score_value))
+                    logger.debug('Phase: {} Epoch: {} Loss: {:.4f} F1_Score {:.4f}'.format('train', epoch, running_loss[i%CLIENTS]/lun[i%CLIENTS], f1_score_value))
 
             with torch.no_grad():
                 #Average weights
-                # averaging_time_client = time.time()
-                # average_weights(models, local_models, False, CLIENTS, 0)
-                # averaging_time_client = time.time() - averaging_time_client
-                averaging_time_client = 0
-                averaging_time_server = time.time()
-                average_weights(models, local_models, False, constant, 1)
-                averaging_time_server = time.time() - averaging_time_server
+                averaging_time_client = time.time()
+                average_weights_4(models, local_models, False, constant, 0)    # thor=0: pick the whole model in client, and then average the shared part
+                averaging_time_client = time.time() - averaging_time_client
+                averaging_time_server = 0
 
                 #Total Time for one epoch
                 total_time_train(since, epoch, total_time_client, total_time_client_forw, total_time_client_back, total_time_client_trainA, total_time_server, total_time_server_forw, total_time_server_back, averaging_time_client, averaging_time_server, total_steptime_client, total_steptime_client_trainA, total_steptime_server, logger, "train"+":"+str(j))
                 
                 #Validation
                 for k in range(constant.CLIENTS):
-                    for i in range(1, constant.THOR):   # only the server parts were averaged at PS.
-                        models['models{}'.format(k+1)][i] = models['models{}'.format(k+1)][i].send(client_array[k][i])
-                        optimizer1 = optim.AdamW(models['models{}'.format(k+1)][i].parameters(), lr=constant.LR, betas=(0.9, 0.999), eps=1e-08, weight_decay=0.01, amsgrad=False)
+                    for i in range(0, 1): # constant.THOR=1
+                        models['models{}'.format(k+1)][i].send(client_array[k][i])
+                    seqs = []
+                    for model in models['models{}'.format(k+1)]:
+                        seqs.append(nn.Sequential(*(model[:constant.CUTS[1]])))
+                        seqs.append(nn.Sequential(*(model[constant.CUTS[1]:])))
+                    for i in range(len(seqs)):
+                        optimizer1 = optim.AdamW(seqs[i].parameters(), lr=constant.LR, betas=(0.9, 0.999), eps=1e-08, weight_decay=0.01, amsgrad=False)
                         scheduler['optimizer{}'.format(k+1)][i] = ExponentialLR(optimizer1, gamma=0.9)
                         optimizers['optimizer{}'.format(k+1)][i] = optimizer1   
-                        # privacy_engine = PrivacyEngine(models['models{}'.format(k+1)][1],
-                        #     batch_size=constant.BATCH_SIZE, 
-                        #     sample_size=len(dataloaders['train'].dataset), 
-                        #     alphas=range(2,32), 
-                        #     noise_constant.PARAM=constant.PARAM,
-                        #     max_grad_norm=1.0)
-                        privacy_engines[k][1].detach()
-                        privacy_engines[k][1].attach(optimizers['optimizer{}'.format(k+1)][1])
-
+            
                 for k in range(constant.CLIENTS):
-                    for i in range(constant.THOR):
+                    for i in range(1): # constant.THOR=1
                         models["models{}".format(k+1)][i].eval()
             
                 target_tot=[]
@@ -371,14 +358,14 @@ def run_model(device, dataloaders, data, constant):
                 cli_target_map = defaultdict(list)
                 
                 running_loss_val = 0
-                with torch.set_grad_enabled(True):
+                with torch.no_grad():
                     for dat_idx in range(len(dataloaders['val'])):
                         since = time.time()
                         for idx, (images, labels) in enumerate(dataloaders['val'][dat_idx]):
                             images = images.to(device)
                             labels = labels.to(device)
                             images = images.send(models['models{}'.format((idx%constant.CLIENTS)+1)][0].location)
-                            # labels = labels.send(models['models{}'.format((idx%constant.CLIENTS)+1)][constant.THOR-1].location)
+                            # labels = labels.send(models['models{}'.format((idx%CLIENTS)+1)][0].location) # constant.THOR=1
                             output, forward_clients, forward_server, intermediate = splitNNs['splitNN{}'.format((idx%constant.CLIENTS)+1)].forwardVal(images)
         ##############################################################
                             intermediate = intermediate.get()

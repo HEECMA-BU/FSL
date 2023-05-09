@@ -26,11 +26,19 @@ def make_prediction(output, target, target_array, pred_array):
     target_array.append(target)
     pred_array.append(pred)
     
-    return target_array, pred_array
+    return pred, target_array, pred_array
     
-def total_time_train(since, epoch, total_time_client, total_time_client_trainA, total_time_server, averaging_time, total_steptime_client, total_steptime_client_trainA, total_steptime_server, logger, phase):
+# def total_time_train(since, epoch, total_time_client, total_time_client_trainA, total_time_server, averaging_time_cli, averaging_time_ser, total_steptime_client, total_steptime_client_trainA, total_steptime_server, logger, phase):
+#     time_elapsed = time.time() - since
+#     print('Epoch {} in {:.0f}m {:.0f}s'.format(epoch, time_elapsed // 60, time_elapsed % 60))
+#     logger.debug(': {},{},{},{},{},{},{},{},{},{},{}'.format(phase, epoch, time_elapsed, total_time_client, total_time_client_trainA, total_time_server, averaging_time_cli, averaging_time_ser, total_steptime_client, total_steptime_client_trainA, total_steptime_server))
+#     # file3.write('{} {:.0f}m {:.0f}s {:.0f}m {:.0f}s {:.0f}m {:.0f}s\n'.format(epoch, time_elapsed // 60, time_elapsed % 60, total_time_client // 60, total_time_client % 60, total_time_server // 60, total_time_server % 60))
+
+def total_time_train(since, epoch, total_time_client, total_time_client_forw, total_time_client_back, total_time_client_trainA, total_time_server, total_time_server_forw, total_time_server_back, averaging_time_cli, averaging_time_ser, total_steptime_client, total_steptime_client_trainA, total_steptime_server, logger, phase):
     time_elapsed = time.time() - since
     print('Epoch {} in {:.0f}m {:.0f}s'.format(epoch, time_elapsed // 60, time_elapsed % 60))
-    logger.debug(': {},{},{},{},{},{},{},{},{},{}'.format(phase, epoch, time_elapsed, total_time_client, total_time_client_trainA, total_time_server, averaging_time, total_steptime_client, total_steptime_client_trainA, total_steptime_server))
+    logger.debug(': {},{},{},{},{},{},{},{},{},{},{},{},{},{},{}'.format(phase, epoch, time_elapsed, total_time_client, total_time_client_forw, total_time_client_back, total_time_client_trainA, total_time_server, total_time_server_forw, total_time_server_back, averaging_time_cli, averaging_time_ser, total_steptime_client, total_steptime_client_trainA, total_steptime_server))
     # file3.write('{} {:.0f}m {:.0f}s {:.0f}m {:.0f}s {:.0f}m {:.0f}s\n'.format(epoch, time_elapsed // 60, time_elapsed % 60, total_time_client // 60, total_time_client % 60, total_time_server // 60, total_time_server % 60))
+
+
 

@@ -43,7 +43,7 @@ def vgg_fc_layer(size_in, size_out):
 #     return model
 def get_modelCIFAR(n_classes, device):
     model = models.vgg16(pretrained=False)
-    state_dict = torch.load("vgg16-397923af.pth", map_location=device)
+    state_dict = torch.load("FSL_algorithm/resources/vgg16-397923af.pth", map_location=device)
     # state_dict = torch.load("vgg16-397923af.pth", map_location="cuda:1")
     # state_dict = torch.load("vgg16-397923af.pth")
     model.load_state_dict(state_dict)

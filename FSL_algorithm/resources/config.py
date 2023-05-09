@@ -2,12 +2,15 @@ import os
 import json
 
 # simulation implementation
-import FSL_algorithm.models.simulation.no_privacy.model1_no_privacy_fix_partition_size_vary_dataset as psl_no_privacy_fix_partition_size_vary_dataset
-import FSL_algorithm.models.simulation.no_privacy.model2_no_privacy_fix_partition_size_vary_dataset as fsl_no_privacy_fix_partition_size_vary_dataset
+# import FSL_algorithm.models.simulation.no_privacy.model1_no_privacy_fix_partition_size_vary_dataset as psl_no_privacy_fix_partition_size_vary_dataset
+# import FSL_algorithm.models.simulation.no_privacy.model2_no_privacy_fix_partition_size_vary_dataset as fsl_no_privacy_fix_partition_size_vary_dataset
 import FSL_algorithm.models.simulation.no_privacy.model1_no_privacy_vary_partition_size_fix_dataset as psl_no_privacy_vary_partition_size_fix_dataset
 # import FSL_algorithm.models.simulation.no_privacy.model1_no_privacy_vary_partition_size_fix_dataset_bn as psl_no_privacy_vary_partition_size_fix_dataset
 import FSL_algorithm.models.simulation.no_privacy.model2_no_privacy_vary_partition_size_fix_dataset as fsl_no_privacy_vary_partition_size_fix_dataset
 # import FSL_algorithm.models.simulation.no_privacy.model2_no_privacy_vary_partition_size_fix_dataset_bn as fsl_no_privacy_vary_partition_size_fix_dataset
+import FSL_algorithm.models.simulation.no_privacy.model2_no_privacy_vary_partition_size_fix_dataset_no_avg as fsl_no_privacy_vary_partition_size_fix_dataset_no_avg
+import FSL_algorithm.models.simulation.no_privacy.model3_no_privacy_vary_partition_size_fix_dataset_federated_learning as fl_no_privacy_vary_partition_size_fix_dataset
+import FSL_algorithm.models.simulation.no_privacy.model4_no_privacy_vary_partition_size_fix_dataset_fedreconst as frc_no_privacy_vary_partition_size_fix_dataset
 
 import FSL_algorithm.models.simulation.progressive_approach.model1_alt_vary_partition_size_fix_dataset as psl_alt_vary_partition_size_fix_dataset
 import FSL_algorithm.models.simulation.progressive_approach.model2_alt_vary_partition_size_fix_dataset as fsl_alt_vary_partition_size_fix_dataset
@@ -33,10 +36,11 @@ os.makedirs(EXP_DIR, exist_ok=True)
 
 class Config:
     # attack experiment working directory
-    # WD = os.path.join(EXP_DIR, "m2_nop_reconstruction_client_5_vary_partition_size_fix_dataset_base_500_BN") 
+    # WD = os.path.join(EXP_DIR, "m1_nop_reconstruction_client_5_vary_partition_size_fix_dataset_base_500") 
+    # WD = os.path.join(EXP_DIR, "m2_nop_reconstruction_client_5_vary_partition_size_fix_dataset_base_500") 
     # WD = os.path.join(EXP_DIR, "m1_alt_1_reconstruction_vary_partition_size_fix_dataset_5_base_500") 
     WD = os.path.join(EXP_DIR, "m2_alt_1_reconstruction_vary_partition_size_fix_dataset_5_base_500") 
-    # WD = os.path.join(EXP_DIR, "m1_nop_reconstruction_client_5_vary_partition_size_fix_dataset_base_500") 
+    
         
     # learner experiment parent directory
     PD = EXP_DIR
@@ -49,7 +53,8 @@ class Config:
     PARAM = 1
 
     # model list
-    MODELS = [fsl_no_privacy_vary_partition_size_fix_dataset]
+    # MODELS = [fsl_no_privacy_vary_partition_size_fix_dataset, psl_no_privacy_vary_partition_size_fix_dataset, fl_no_privacy_vary_partition_size_fix_dataset, frc_no_privacy_vary_partition_size_fix_dataset, fsl_alt_vary_partition_size_fix_dataset, psl_alt_vary_partition_size_fix_dataset]
+    MODELS = [fsl_dp_vary_partition_size_fix_dataset]
 
     # MODELS to run:
     # psl_no_privacy_fix_partition_size_vary_dataset
@@ -77,6 +82,8 @@ class Config:
 
     #Dataset name
     data = 'cifar10'
+    #Data Distribution: equDiff diffDistrmodel1 diffDistrmodel3
+    DATA_DIST = "diffDistrmodel1"
 
     #Attack Epoch
     attack_epoch = "9"
@@ -87,7 +94,7 @@ class Config:
     LAMBDA = 0.9 #0.01
 
     #Number of clients
-    CLIENTS=5
+    CLIENTS=20
     
     #Number of max_clients (used in Equal Work Clients scenerio)
     MAXCLIENTS=500
@@ -99,7 +106,8 @@ class Config:
     OPTIMIZER ="Adam"
 
     #Learning rate
-    LR = 0.000065
+    # LR = 0.000065
+    LR = 0.00005
 
     #Count how many times f1_score greater than f1_scorebest
     MAX_COUNTER = 5
