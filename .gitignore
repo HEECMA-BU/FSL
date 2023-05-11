@@ -142,3 +142,5 @@ cifar10/
 
 # Model Weights
 FSL_algorithm/resources/vgg16-397923af.pth
+env.zip
+wget-log

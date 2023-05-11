@@ -7,11 +7,11 @@ This repo contains the three implementations for reproducibility of our FSL pape
 - Journal Paper IEEE Transaction of Bid Data is under review.
 
 ## Directories
-- FSL_algorithm/models directory we have the model implementations (simulation and remote, the remote folder is in progress)
+- FSL_algorithm/models directory we have the model implementations (local emulation and distributed. Notice that the distributed implementation is only a proof of concept which lacks support for DP and the distributed communication framework PyGrid has been obsolete.)
 - FSL_algorithm/resources we have some helper functions for dataloader and neural network definition.
 - FSL_algorithm/attacker there is the attacker model used to reconstruct data that each client send to server.
 
-## Requirement(Simulation)
+## Requirement(Local Emulation)
 
 It would be needed to follow these steps to obtain a correctly configured environment:
 
@@ -38,8 +38,12 @@ sudo apt install libsrtp2-dev
 sudo apt-get install -y libavformat-dev
 sudo apt-get install libavdevice-dev
 ```
-Please consider unzip the [env.zip](https://drive.google.com/file/d/1ClL5ZlRQcKeE6RmUsoaJHpY2V3DNtYr2/view?usp=sharing) at repo root to simplify the setup, especially for DP implementations, where the syft version is not accessible anymore.
-Otherwise, please follow the next steps. 
+Next, please consider unzip the [env.zip](https://drive.google.com/file/d/1ClL5ZlRQcKeE6RmUsoaJHpY2V3DNtYr2/view?usp=sharing) at repo root to simplify the setup, especially for DP implementations, where the syft version is not accessible anymore.
+```
+wget -O env.zip "https://docs.google.com/uc?export=download&confirm=t&id=1ClL5ZlRQcKeE6RmUsoaJHpY2V3DNtYr2"
+unzip env.zip
+```
+Otherwise, please follow the next steps. This setup only works with the no privacy (Privacy Oblivious) and progressive_approach (CPA-DC) implementations.
 ```
 python3 -m pip install syft==0.2.9
 python3 -m pip install opacus==0.11.0
@@ -102,16 +106,21 @@ tmux attach -t 0
 
 
 ## Requirement(Distributed)
-- in the root folder FSL run "python env_setup.py develop" to install the package
-Then install the following packages:
+Please notice that PyGrid has been obsolete. This implementation is only a proof of concept. We are working on using PyTorch RPC to rewrite the codebase.
+
+- Install PySyft
 ```
-    - syft==0.2.8
-    - PyGrid@4ad52e36bc13f2d15a1df395187f853526b98f1f
+python3 -m pip install syft==0.2.8
+```
+
+- clone the following repo.
+```
+PyGrid@4ad52e36bc13f2d15a1df395187f853526b98f1f
 ```
 ## How to Run
-### Learner(Simulation)
+### Learner(Local Emulation)
 ```
-python3 learner_script.py mnist 0 CUTS 6
+python3 learner_script.py mnist 0 CUTS 6 new_config_key2 new_config_value2 new_config_key3 new_config_value3
 ```
 
 ### Learner(Distributed)
@@ -124,8 +133,9 @@ python3 learner_script.py mnist
 
 
 ### Attacker
+please remember to specify `config.WD` and `config.data` to the experiment you want to attack. E.g., "m2_nop_reconstruction_client_5_equal_work_dataset_base_500_[0, 4]_cifar10_equDiff_SerAvg".
 ```
-python3 attack_script.py
+python3 attack_script.py # python3 attack_script.py cut_idx gpu_idx epoch_idx INTERMEDIATE_DATA_DIR(i.e, Train/)
 ```
 
 ### Experiment Configurations
