@@ -5,7 +5,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Python: Current File",
+            "name": "Python: Learner",
             "type": "python",
             "request": "launch",
             "program": "${file}",
@@ -16,6 +16,19 @@
                 "0",
                 "CUTS",
                 "6",
+            ],
+        },
+        {
+            "name": "Python: Attacker",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": [
+                "4",
+                "0",
+                "19"
             ],
         }
     ]

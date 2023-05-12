@@ -24,11 +24,12 @@ def setup_logger(name, log_file):
 
     return logger
 
+if len(sys.argv) >= 2:
+    constant.CUTS=[0,int(sys.argv[1])]
+if len(sys.argv) >= 5:
+    constant.INTERMEDIATE_DATA_DIR=sys.argv[4]
 
-constant.CUTS=[0,int(sys.argv[1])]
-constant.INTERMEDIATE_DATA_DIR=sys.argv[4]
-
-wd = constant.WD+"_with_"+str(constant.data)+"_CUT_"+sys.argv[1]
+wd = constant.WD
 Path(wd).mkdir(parents=True, exist_ok=True)
 
 logs_dirpath = wd+'/logs/attack_'+constant.INTERMEDIATE_DATA_DIR+"/"
@@ -65,12 +66,15 @@ equal_count_sum = 0
 used_file_count = 0
 (dirpath, dirname_l, filename_l) = next(walk(input_dirname))
 # filename_l = []
-trials = 10
+trials = 10 # repeat attack
 
 # for epoch_idx in range(constant.EPOCHS):
+if len(sys.argv) >= 4:
+    epoch_idx = int(sys.argv[3])
+else:
+    epoch_idx = constant.EPOCHS-1
+
 # setup logger
-# epoch_idx = constant.EPOCHS-1
-epoch_idx = int(sys.argv[3])
 log_filename_idx = 1
 while os.path.isfile(logs_dirpath+"epoch_idx:"+str(epoch_idx)+"_"+str(log_filename_idx)+'.log'):
     log_filename_idx = log_filename_idx+1

@@ -39,7 +39,7 @@ class Config:
     # WD = os.path.join(EXP_DIR, "m1_nop_reconstruction_client_5_vary_partition_size_fix_dataset_base_500") 
     # WD = os.path.join(EXP_DIR, "m2_nop_reconstruction_client_5_vary_partition_size_fix_dataset_base_500") 
     # WD = os.path.join(EXP_DIR, "m1_alt_1_reconstruction_vary_partition_size_fix_dataset_5_base_500") 
-    WD = os.path.join(EXP_DIR, "m2_alt_1_reconstruction_vary_partition_size_fix_dataset_5_base_500") 
+    WD = os.path.join(EXP_DIR, "m2_nop_reconstruction_client_5_equal_work_dataset_base_500_[0, 4]_cifar10_equDiff_SerAvg") 
     
         
     # learner experiment parent directory
